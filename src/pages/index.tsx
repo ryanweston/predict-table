@@ -1,134 +1,138 @@
 import type { NextPage } from 'next'
 import { useState, useEffect } from 'react'
-import { clsx } from 'clsx';
+import { clsx } from 'clsx'
 
-export interface ITeam { 
-  name: string,
+export interface ITeam {
+  id: number
+  name: string
+  picked: boolean
+}
+
+export interface ITableItem {
+  teamId: number | null
 }
 
 const useMousePosition = () => {
-  const [
-    mousePosition,
-    setMousePosition
-  ] = useState({ x: null, y: null });
-    useEffect(() => {
+  const [mousePosition, setMousePosition] = useState({ x: null, y: null })
+  useEffect(() => {
     const updateMousePosition = (ev: any) => {
-      setMousePosition({ x: ev.clientX, y: ev.clientY });
-    };
-    window.addEventListener('drag', updateMousePosition);
+      setMousePosition({ x: ev.clientX, y: ev.clientY })
+    }
+    window.addEventListener('drag', updateMousePosition)
     return () => {
-      window.removeEventListener('drag', updateMousePosition);
-    };
-  }, []);
-  return mousePosition;
-};
+      window.removeEventListener('drag', updateMousePosition)
+    }
+  }, [])
+  return mousePosition
+}
 
-const HomePage: NextPage = () =>  {
+const HomePage: NextPage = () => {
   // Team data and hooks
-  const teams: ITeam[] = [{ name: 'Tottenham Hotspurs'}, { name: 'Chelsea FC'}, { name: 'Manchester City'}, { name: 'Plymouth Argyle'}]
-  const [pickedTeam, setPickTeam] = useState([false, false, false, false])
-  const [tablePos, setTablePos] = useState([{team: null}, {team: null}, {team: null}, { team: null }])
+  const [teams, updateTeams] = useState<ITeam[]>([
+    { id: 0, name: 'Tottenham Hotspurs', picked: false },
+    { id: 1, name: 'Chelsea FC', picked: false },
+    { id: 2, name: 'Manchester City', picked: false },
+    { id: 3, name: 'Plymouth Argyle', picked: false },
+  ])
+
+  const [tablePos, setTablePos] = useState<ITableItem[]>([
+    { teamId: null },
+    { teamId: null },
+    { teamId: null },
+    { teamId: null },
+  ])
 
   // Drag hooks
-  const [currentDrag, setCurrentDrag] = useState({ type: 'team', id: false})
-  const [currentDragOver, setCurrentDragOver] = useState(null)
-  const [dragActive, setActiveDrag] = useState(false)
-  
+  const [currentDrag, setCurrentDrag] = useState(null)
+  const [currentDragOver, setCurrentDragOver] = useState<
+    number | 'teams' | null
+  >(null)
+
   // Current mouse position when dragging
-  const mousePosition = useMousePosition();
-  
-  const dragEntered = (e: DragEvent, index: any) => { 
+  const mousePosition = useMousePosition()
+
+  // I'm setting current drag as the row index
+  const dragEntered = (e: React.DragEvent, teamIndex: number) => {
     e.preventDefault()
-    if (!dragActive) {
-      setCurrentDrag(index)
-      setActiveDrag(true)
-    }
+    console.log('DRAGGING:', teamIndex)
+    setCurrentDrag(teamIndex)
   }
 
-  const dragEnd = () => { 
-    console.log('EXIT')
-    setActiveDrag(false)
+  const dragEnd = (e: React.DragEvent, index: any) => {
+    console.log('ENDING DRAG:', index)
+    // Set the table
+    console.log(currentDrag, currentDragOver)
+    const toTable = currentDragOver === 'teams' ? false : true
+    updateTable(index, toTable)
+
     setCurrentDrag(null)
   }
 
-  
-  const dragLeave = (e: DragEvent) => { 
-    e.target.classList.remove('border-b-red-500')
-    e.target.classList.remove('border-t-red-500')
-    e.target.classList.remove('bg-red-500')
-
+  const dragLeave = (e: React.DragEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement
+    target.classList.remove('border-b-red-500')
+    target.classList.remove('border-t-red-500')
+    target.classList.remove('bg-red-500')
   }
-  
-  const dragOver = (e: DragEvent, index: any) => { 
-    console.log('SETTING DRAG OVER')
-    setCurrentDragOver(index)
-    if (dragActive) {
-      if (tablePos[index].team)  {
-          const halfOfHeight = e.target.offsetHeight / 2
-          if (mousePosition.y < (e.target?.offsetTop + halfOfHeight)) {
-            e.target.classList.remove('border-b-red-500')
-            e.target.classList.add('border-t-red-500')
-          }
-          else if (mousePosition.y > (e.target?.offsetTop + halfOfHeight)) {
-            e.target.classList.remove('border-t-red-500')
-            e.target.classList.add('border-b-red-500')
-          }
+
+  const dragOver = (e: React.DragEvent<HTMLElement>, index: number) => {
+    const target = e.target as HTMLElement
+
+    if (currentDragOver !== index) setCurrentDragOver(index)
+
+    if (currentDrag && target && mousePosition.y && index) {
+      if (tablePos[index].teamId) {
+        const halfOfHeight = target.offsetHeight / 2
+        if (mousePosition.y < target?.offsetTop + halfOfHeight) {
+          target.classList.remove('border-b-red-500')
+          target.classList.add('border-t-red-500')
+        } else if (mousePosition.y > target?.offsetTop + halfOfHeight) {
+          target.classList.remove('border-t-red-500')
+          target.classList.add('border-b-red-500')
+        }
       } else {
-        e.target.classList.add('bg-red-500')
+        target.classList.add('bg-red-500')
       }
     }
   }
 
-  // SECOND LOT DRAG
-  
-  const dragLeaveTeam = (e: DragEvent) => { 
-    e.target.classList.remove('border-b-red-500')
-    e.target.classList.remove('border-t-red-500')
+  const dragLeaveTeam = (e: React.DragEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement
+    target.classList.remove('border-b-red-500')
+    target.classList.remove('border-t-red-500')
   }
 
-  // const dragDropTeam = (e: DragEvent, index: any) => { 
-  //   if (currentDragOver) { 
-  //     let newTeam = [ ...tablePos ]
-  //     newTeam = [currentDragOver].team = index
-  //     setTablePos(newTeam)
-  //     console.log(tablePos)
-  //   }
-  // }
-
-
-  const dragEnteredTeam = (e: DragEvent, index: any) => { 
-    e.preventDefault()
-    if (!dragActive) {
-      setCurrentDrag(index)
-      setActiveDrag(true)
-    }
-  }
-
-  const dragEndTeam = (e: DragEvent, index: any) => { 
-    console.log('EXIT')
-    console.log(currentDragOver , index)
-    
-    if ( currentDragOver !== null) {
-      console.log('SETTING TABLE POSITION')
-      // Set the table
-      const updatedTable = [ ...tablePos ]
-      updatedTable[currentDragOver] = { team: index }
-      setTablePos(updatedTable)
-      
-      // Adjust what teams have been picked
-      const updatedPicks= [ ...pickedTeam ]
-      updatedPicks[index] = true
-      setPickTeam(updatedPicks)
+  const dragEndTeam = (e: React.DragEvent, teamIndex: any) => {
+    // Set the table
+    if (currentDragOver !== null && currentDragOver !== 'teams') {
+      updateTable(teamIndex, true)
     }
 
-    setActiveDrag(false)
     setCurrentDrag(null)
   }
 
-  return (  
-    <div className='flex flex-col w-screen justify-center items-center px-20'>
+  const dragOverTeamBox = (e: React.DragEvent) => {
+    setCurrentDragOver('teams')
+  }
+
+  const updateTable = (index: number, toTable: boolean) => {
+    console.log('UPDATE TABLE')
+    const updatedTable = [...tablePos]
+    const rowIndex = toTable ? currentDragOver : currentDrag
+
+    updatedTable[rowIndex] = { teamId: toTable ? index : null }
+    setTablePos(updatedTable)
+
+    // Adjust what teams have been picked
+    const pickedTeams = [...teams]
+    pickedTeams[index].picked = toTable ? true : false
+    updateTeams(pickedTeams)
+  }
+
+  return (
+    <div className="flex flex-col w-screen justify-center items-center px-20">
       <h3>Predictionary</h3>
-      <table className='rounded-lg border border-gray-500 py-4 bg-gray-100 w-full'>
+      <table className="rounded-lg border border-gray-500 py-4 bg-gray-100 w-full">
         <thead>
           <tr>
             <th>Pos</th>
@@ -136,46 +140,63 @@ const HomePage: NextPage = () =>  {
             <th>Points</th>
           </tr>
         </thead>
-        <tbody>{ tablePos.map((item, index) => { 
-          console.log(item)
-          return (
-            <tr
-              className={clsx(dragActive && index === currentDrag.id && currentDrag.type !== 'team' ? 'bg-gray-200 text-gray-400' : 'bg-slate-100 hover:bg-slate-100', 'w-full px-4 py-12 border-t border-b')}
-              draggable="true"
-              key={index}
-              onDragOver={(e) => dragOver(e, index)}
-              onDragLeave={(e) => dragLeave(e)}
-              onDragEnter={(e) => dragEntered(e, index)}
-              onDragEnd={(e) => dragEnd()}
-              // onDrop={(e) => console.log('DROP', item.name, index)}
-              // onDrag={(e) => console.log('DRAG', item.name, index)}
-            > 
-        
-              <td>{ index + 1 }</td>
-              <td>{item.team !== null ? teams[item.team].name : ''}</td>
-              <td>{ item.team } </td>
-            </tr>
-          )
-        })}
+        <tbody>
+          {tablePos.map((tableItem, rowIndex) => {
+            console.log(tableItem.teamId)
+            // const teamIndex = tableItem.team ? teams[tableItem.team] : null
+
+            return (
+              <tr
+                className={clsx(
+                  'bg-slate-100 hover:bg-slate-100',
+                  'w-full px-4 py-12 border-t border-b'
+                )}
+                draggable={tableItem.teamId !== null}
+                key={rowIndex}
+                onDragOver={(e) => dragOver(e, rowIndex)}
+                onDragLeave={(e) => dragLeave(e)}
+                onDragEnd={(e) => dragEnd(e, teams[tableItem.teamId].id)}
+                onDrag={(e) =>
+                  dragEntered(e, rowIndex, teams[tableItem.teamId].id)
+                }
+              >
+                <td>{rowIndex + 1}</td>
+                <td>
+                  {tableItem.teamId !== null
+                    ? teams[tableItem.teamId].name
+                    : ''}
+                </td>
+                <td></td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
-      
-      <h5 className='mt-10'>Teams</h5>
-      <div className='rounded-lg pa-10 grid grid-cols-2 gap-2 mt-4'>
-        { teams.map((item, index) => {
-          return !pickedTeam[index] ? (
-            <div 
-              className='bg-gray-100' 
-              key={item.name}
-              draggable={true}
-              onDragLeave={(e) => dragLeaveTeam(e)}
-              onDragEnter={(e) => dragEnteredTeam(e, index)}
-              onDragEnd={(e) => dragEndTeam(e, index)}
-            >
-                { item.name }
-            </div>
-          ) : ''
-        })}
+
+      <div
+        className="bg-red-500 min-w-full mt-10 px-8 py-8"
+        draggable={false}
+        onDragOver={(e) => dragOverTeamBox(e)}
+      >
+        <h5>Teams</h5>
+        <div className="rounded-lg grid grid-cols-2 gap-2 mt-4 w-full">
+          {teams.map((item, index) => {
+            return !item.picked ? (
+              <div
+                className="bg-gray-100"
+                key={item.name}
+                draggable={true}
+                onDragLeave={(e) => dragLeaveTeam(e)}
+                onDrag={(e) => dragEntered(e, index)}
+                onDragEnd={(e) => dragEndTeam(e, index)}
+              >
+                {item.name}
+              </div>
+            ) : (
+              <div key={index}></div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
