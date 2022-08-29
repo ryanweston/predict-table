@@ -9,8 +9,6 @@ export interface ITeam {
 }
 
 const HomePage: NextPage = () => {
-  const [isLoading, setIsLoading] = useState(false)
-
   // Team data and hooks
   const [teams, updateTeams] = useState<ITeam[]>([
     { id: 0, name: 'Tottenham Hotspurs', picked: false },
@@ -36,7 +34,7 @@ const HomePage: NextPage = () => {
   ])
 
   const [tablePos, setTablePos] = useState<(number | null)[]>([])
-  let zonesMap = new Map()
+  const [zonesMap, setZonesMap] = useState(new Map())
 
   // Drag hooks
   const [currentDrag, setCurrentDrag] = useState<number | null>(null)
@@ -44,39 +42,41 @@ const HomePage: NextPage = () => {
     number | 'teamSection' | null
   >(null)
 
-  // Create table array
+  // todo: this will come from query when backend is setup
+  const highlightedZones = [
+    {
+      name: 'Promotion',
+      startIndex: 0,
+      endIndex: 3,
+      color: 'bg-green-300',
+    },
+    {
+      name: 'Relegation',
+      startIndex: 16,
+      endIndex: 19,
+      color: 'bg-red-300',
+    },
+  ]
+
+  const updateZones = (k: number, v: string) => {
+    setZonesMap(zonesMap.set(k, v))
+  }
+
   useEffect(() => {
-    setIsLoading(true)
+    // Create table array
     const createTable = []
     for (let i = 0; i < teams.length; i++) {
       createTable.push(null)
     }
     setTablePos(createTable)
+  }, [])
 
-    // todo: this will come from query when backend is setup
-    const highlightedZones = [
-      {
-        name: 'Promotion',
-        startIndex: 0,
-        endIndex: 3,
-        color: 'bg-green-300',
-      },
-      {
-        name: 'Relegation',
-        startIndex: 16,
-        endIndex: 19,
-        color: 'bg-red-300',
-      },
-    ]
-
+  useEffect(() => {
     highlightedZones.forEach((zone) => {
       for (let i = zone.startIndex; i <= zone.endIndex; i++) {
-        zonesMap.set(i, zone.color)
+        updateZones(i, zone.color)
       }
     })
-    console.log('um loading should be true', isLoading)
-    setIsLoading(false)
-    console.log('um loading should be false', isLoading)
   }, [])
 
   const dragEntered = (e: React.DragEvent, teamId: number) => {
@@ -163,42 +163,38 @@ const HomePage: NextPage = () => {
       <div className="grid grid-cols-6 w-full gap-6">
         {/* Table  */}
         <div className="border-separate border-spacing-2 w-full px-12 col-span-4">
-          {!isLoading // swap this around
-            ? tablePos.map((teamId, rowIndex) => {
-                let color = null
-                if (zonesMap.has(rowIndex)) color = zonesMap.get(rowIndex)
-                console.log('COLOR', zonesMap.get(rowIndex), rowIndex)
-                console.log(color)
-                return (
-                  <div className={clsx('w-full flex flex-row')} key={rowIndex}>
-                    <div className="rounded-md py-2 w-1/12 mr-8">
-                      <p className="font-medium text-xl text-center bg-transparent">
-                        {rowIndex + 1}
-                      </p>
-                    </div>
-                    <div
-                      draggable={teamId !== null}
-                      onDragOver={(e) => dragOver(e, rowIndex)}
-                      onDragLeave={(e) => dragLeave(e)}
-                      onDragEnd={(e) =>
-                        dragEnd(e, teams[teamId as number]!.id, rowIndex)
-                      }
-                      onDrag={(e) =>
-                        dragEntered(e, teams[teamId as number]!.id)
-                      }
-                      className={clsx(
-                        rowIndex > 0 ? 'border-t-0' : 'rounded-t-lg',
-                        rowIndex === 19 ? 'rounded-b-lg' : '', // fix this to tablePos length
-                        color ? color : '',
-                        'border border-gray-300 py-2 px-4 hover:bg-slate-100 w-full'
-                      )}
-                    >
-                      {teamId ? teams[teamId]?.name : ''}
-                    </div>
-                  </div>
-                )
-              })
-            : 'loading'}
+          {tablePos.map((teamId, rowIndex) => {
+            let color = null
+            if (zonesMap.has(rowIndex)) color = zonesMap.get(rowIndex)
+            console.log('COLOR', zonesMap.has(rowIndex), rowIndex)
+            console.log(zonesMap)
+            return (
+              <div className={clsx('w-full flex flex-row')} key={rowIndex}>
+                <div className="rounded-md py-2 w-1/12 mr-8">
+                  <p className="font-medium text-xl text-center bg-transparent">
+                    {rowIndex + 1}
+                  </p>
+                </div>
+                <div
+                  draggable={teamId !== null}
+                  onDragOver={(e) => dragOver(e, rowIndex)}
+                  onDragLeave={(e) => dragLeave(e)}
+                  onDragEnd={(e) =>
+                    dragEnd(e, teams[teamId as number]!.id, rowIndex)
+                  }
+                  onDrag={(e) => dragEntered(e, teams[teamId as number]!.id)}
+                  className={clsx(
+                    rowIndex > 0 ? 'border-t-0' : 'rounded-t-lg',
+                    rowIndex === 19 ? 'rounded-b-lg' : '', // fix this to tablePos length
+                    color ? color : '',
+                    'border border-gray-300 py-2 px-4 hover:bg-slate-100 w-full'
+                  )}
+                >
+                  {teamId ? teams[teamId]?.name : ''}
+                </div>
+              </div>
+            )
+          })}
         </div>
 
         {/* Teams */}
