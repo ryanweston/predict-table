@@ -1,36 +1,70 @@
 import type { NextPage } from 'next'
 import { useState, useEffect } from 'react'
 import { clsx } from 'clsx'
+import Image from 'next/image'
+import logo from '../../public/logo2.png'
+import Icon from '@mdi/react'
+import { mdiArrowRight } from '@mdi/js'
+import { useSession } from 'next-auth/react'
 
 export interface ITeam {
   id: number
   name: string
   picked: boolean
+  ref: string
 }
 
 const HomePage: NextPage = () => {
+  const { status } = useSession({
+    required: true,
+    onUnauthenticated() {
+      console.log('unauthenticated')
+      // The user is not authenticated, handle it here.
+    },
+  })
+
   // Team data and hooks
   const [teams, updateTeams] = useState<ITeam[]>([
-    { id: 0, name: 'Tottenham Hotspurs', picked: false },
-    { id: 1, name: 'Chelsea FC', picked: false },
-    { id: 2, name: 'Manchester City', picked: false },
-    { id: 3, name: 'Arsenal FC', picked: false },
-    { id: 4, name: 'Liverpool FC', picked: false },
-    { id: 5, name: 'Brighton Albion FC', picked: false },
-    { id: 6, name: 'Leeds United', picked: false },
-    { id: 7, name: 'Newcastle', picked: false },
-    { id: 8, name: 'Manchester United', picked: false },
-    { id: 9, name: 'Brentford', picked: false },
-    { id: 10, name: 'Fulham', picked: false },
-    { id: 11, name: 'Nottingham Forest', picked: false },
-    { id: 12, name: 'Crystal Palace', picked: false },
-    { id: 13, name: 'Southampton', picked: false },
-    { id: 14, name: 'Aston Villa', picked: false },
-    { id: 15, name: 'Bournemouth', picked: false },
-    { id: 16, name: 'Everton', picked: false },
-    { id: 17, name: 'Leicester City', picked: false },
-    { id: 18, name: 'West Ham United', picked: false },
-    { id: 19, name: 'Wolverhampton FC', picked: false },
+    {
+      id: 0,
+      name: 'Tottenham Hotspurs',
+      ref: 'tottenham-hotspur',
+      picked: false,
+    },
+    { id: 1, name: 'Chelsea FC', ref: 'chelsea', picked: false },
+    { id: 2, name: 'Manchester City', ref: 'manchester-city', picked: false },
+    { id: 3, name: 'Arsenal FC', ref: 'arsenal', picked: false },
+    { id: 4, name: 'Liverpool FC', ref: 'liverpool', picked: false },
+    {
+      id: 5,
+      name: 'Brighton & Hove Albion FC',
+      ref: 'brighton-albion',
+      picked: false,
+    },
+    { id: 6, name: 'Leeds United', ref: 'leeds-united', picked: false },
+    { id: 7, name: 'Newcastle United', ref: 'newcastle-united', picked: false },
+    {
+      id: 8,
+      name: 'Manchester United',
+      ref: 'manchester-united',
+      picked: false,
+    },
+    { id: 9, name: 'Brentford', ref: 'brentford', picked: false },
+    { id: 10, name: 'Fulham', ref: 'fulham', picked: false },
+    {
+      id: 11,
+      name: 'Nottingham Forest',
+      ref: 'nottingham-forest',
+      picked: false,
+    },
+    { id: 12, name: 'Crystal Palace', ref: 'crystal-palace', picked: false },
+    { id: 13, name: 'Southampton', ref: 'southampton', picked: false },
+    { id: 14, name: 'Aston Villa', ref: 'aston-villa', picked: false },
+    { id: 15, name: 'AFC Bournemouth', ref: 'afc-bournemouth', picked: false },
+    { id: 16, name: 'Everton', ref: 'everton', picked: false },
+    { id: 17, name: 'Leicester City', ref: 'leicester-city', picked: false },
+    { id: 18, name: 'West Ham United', ref: 'west-ham-united', picked: false },
+    { id: 19, name: 'Wolverhampton FC', ref: 'wolverhampton', picked: false },
   ])
 
   const [tablePos, setTablePos] = useState<(number | null)[]>([])
@@ -45,16 +79,28 @@ const HomePage: NextPage = () => {
   // todo: this will come from query when backend is setup
   const highlightedZones = [
     {
-      name: 'Promotion',
+      name: 'Champions league',
       startIndex: 0,
       endIndex: 3,
-      color: 'bg-green-300',
+      color: 'bg-green-100',
+    },
+    {
+      name: 'Europa league',
+      startIndex: 4,
+      endIndex: 5,
+      color: 'bg-orange-100',
+    },
+    {
+      name: 'Conference league',
+      startIndex: 6,
+      endIndex: 6,
+      color: 'bg-blue-100',
     },
     {
       name: 'Relegation',
-      startIndex: 16,
+      startIndex: 17,
       endIndex: 19,
-      color: 'bg-red-300',
+      color: 'bg-red-100',
     },
   ]
 
@@ -62,21 +108,25 @@ const HomePage: NextPage = () => {
     setZonesMap(zonesMap.set(k, v))
   }
 
-  useEffect(() => {
-    // Create table array
+  const createTable = () => {
     const createTable = []
     for (let i = 0; i < teams.length; i++) {
       createTable.push(null)
     }
     setTablePos(createTable)
-  }, [])
+  }
 
-  useEffect(() => {
+  const createZones = () => {
     highlightedZones.forEach((zone) => {
       for (let i = zone.startIndex; i <= zone.endIndex; i++) {
         updateZones(i, zone.color)
       }
     })
+  }
+
+  useEffect(() => {
+    createTable()
+    createZones()
   }, [])
 
   const dragEntered = (e: React.DragEvent, teamId: number) => {
@@ -85,22 +135,28 @@ const HomePage: NextPage = () => {
   }
 
   const dragEnd = (e: React.DragEvent, teamId: any, currentTeamRow: number) => {
+    console.log('drag end')
     // Set the table
     const toTable = currentDragOver === 'teamSection' ? false : true
     updateTable(teamId, toTable, currentTeamRow)
-
+    console.log(tablePos)
     setCurrentDrag(null)
   }
 
   const dragLeave = (e: React.DragEvent<HTMLElement>) => {
     const target = e.target as HTMLElement
-    target.classList.remove('bg-blue-200')
+    target.classList.remove('border-black')
+    target.classList.remove('border-t-black')
+    target.classList.remove('border-2')
   }
 
   const dragOver = (e: React.DragEvent<HTMLElement>, rowIndex: number) => {
+    console.log('drag over')
     const target = e.target as HTMLElement
     if (currentDragOver !== rowIndex) setCurrentDragOver(rowIndex)
-    target.classList.add('bg-blue-200')
+    target.classList.add('border-black')
+    target.classList.add('border-2')
+    target.classList.add('border-t-black')
   }
 
   // Clean up assertions
@@ -134,6 +190,7 @@ const HomePage: NextPage = () => {
     const pickedTeams = [...teams]
     pickedTeams[teamId]!.picked = toTable ? true : false
     updateTeams(pickedTeams)
+    console.log(tablePos)
   }
 
   const dragEndTeam = (e: React.DragEvent, teamIndex: any) => {
@@ -149,6 +206,10 @@ const HomePage: NextPage = () => {
     setCurrentDragOver('teamSection')
   }
 
+  const dragLeaveTeamBox = (e: React.DragEvent) => {
+    setCurrentDragOver(null)
+  }
+
   // TODO: save to local storage so it preserves state on refresh
 
   const onSubmit = () => {
@@ -158,80 +219,139 @@ const HomePage: NextPage = () => {
   }
 
   return (
-    <div className="flex flex-col w-screen-1/2 px-20 py-12">
-      <h3 className="font-medium text-4xl py-20">Predict-a-tron</h3>
-      <div className="grid grid-cols-6 w-full gap-6">
-        {/* Table  */}
-        <div className="border-separate border-spacing-2 w-full px-12 col-span-4">
-          {tablePos.map((teamId, rowIndex) => {
-            let color = null
-            if (zonesMap.has(rowIndex)) color = zonesMap.get(rowIndex)
-            console.log('COLOR', zonesMap.has(rowIndex), rowIndex)
-            console.log(zonesMap)
+    <div className="w-screen">
+      <div className="w-full px-20 py-10 flex flex-row justify-between items-center">
+        <h3 className="font-medium text-2xl">
+          <Image src={logo} />
+          Predictable
+        </h3>
+        <div className="flex flex-row items-center">
+          <h3 className="font-medium text-2xl border-b-4 border-black hover:border-b-4 hover:border-black">
+            Your table
+          </h3>
+          <h3 className="font-medium ml-6 text-2xl border-b-4 border-transparent hover:border-black">
+            Compare with friends
+          </h3>
+        </div>
+        <div className="flex flex-row items-center">
+          <h3 className="font-medium text-2xl border-b-4 border-transparent hover:border-black">
+            Register
+          </h3>
+          <h3 className="font-medium text-2xl ml-6 border-b-4 border-transparent hover:border-black">
+            Login
+          </h3>
+        </div>
+      </div>
+
+      <div className="w-full px-20 flex flex-row pt-16 pb-8">
+        <h3 className="font-medium text-8xl max-w-4xl">
+          Predict your 2022/23 Premier League table
+          {/* <Icon
+            path={mdiArrowRight}
+            color="black"
+            size={5}
+            className="inline-block"
+          /> */}
+        </h3>
+      </div>
+
+      <div className="flex flex-col w-screen-1/2 px-20 py-12">
+        <div className="flex flex-row mb-8">
+          Key:
+          {highlightedZones.map((zone) => {
             return (
-              <div className={clsx('w-full flex flex-row')} key={rowIndex}>
-                <div className="rounded-md py-2 w-1/12 mr-8">
-                  <p className="font-medium text-xl text-center bg-transparent">
-                    {rowIndex + 1}
-                  </p>
-                </div>
-                <div
-                  draggable={teamId !== null}
-                  onDragOver={(e) => dragOver(e, rowIndex)}
-                  onDragLeave={(e) => dragLeave(e)}
-                  onDragEnd={(e) =>
-                    dragEnd(e, teams[teamId as number]!.id, rowIndex)
-                  }
-                  onDrag={(e) => dragEntered(e, teams[teamId as number]!.id)}
-                  className={clsx(
-                    rowIndex > 0 ? 'border-t-0' : 'rounded-t-lg',
-                    rowIndex === 19 ? 'rounded-b-lg' : '', // fix this to tablePos length
-                    color ? color : '',
-                    'border border-gray-300 py-2 px-4 hover:bg-slate-100 w-full'
-                  )}
-                >
-                  {teamId ? teams[teamId]?.name : ''}
-                </div>
+              <div className="flex flex-row ml-4">
+                <span className={`px-2 py-1 ${zone.color}`}></span>
+                <span className="ml-2">{zone.name}</span>
               </div>
             )
           })}
         </div>
-
-        {/* Teams */}
-        <div
-          className="min-w-full col-span-2"
-          draggable={false}
-          onDragOver={(e) => dragOverTeamBox(e)}
-        >
-          <h5 className="font-medium">Teams</h5>
-          <div className="rounded-lg mt-4 w-full">
-            {teams.map((item, index) => {
-              return !item.picked ? (
-                <div
-                  className="bg-black text-white py-4 px-4 rounded-lg mt-2"
-                  key={item.name}
-                  draggable={true}
-                  onDrag={(e) => dragEntered(e, index)}
-                  onDragEnd={(e) => dragEndTeam(e, index)}
-                >
-                  {item.name}
+        <div className="grid grid-cols-6 w-full gap-10">
+          {/* Table  */}
+          <div className="border-separate border-spacing-2 w-full col-span-4">
+            {tablePos.map((teamId, rowIndex) => {
+              let color = null
+              if (zonesMap.has(rowIndex)) color = zonesMap.get(rowIndex)
+              console.log(tablePos[rowIndex], teamId, teams[teamId]?.name)
+              return (
+                <div className={clsx('w-full flex flex-row')} key={rowIndex}>
+                  <div className="rounded-md py-2 w-1/12 mr-8">
+                    <p className="font-medium text-xl text-center bg-transparent">
+                      {rowIndex + 1}
+                    </p>
+                  </div>
+                  <div
+                    draggable={teamId !== null}
+                    onDragOver={(e) => dragOver(e, rowIndex)}
+                    onDragLeave={(e) => dragLeave(e)}
+                    onDragEnd={(e) =>
+                      dragEnd(e, teams[teamId as number]!.id, rowIndex)
+                    }
+                    onDrag={(e) => dragEntered(e, teams[teamId as number]!.id)}
+                    className={clsx(
+                      rowIndex > 0 ? 'border-t-transparent' : 'rounded-t-lg',
+                      rowIndex === 19 ? 'rounded-b-lg' : '', // fix this to tablePos length
+                      color ? color : '',
+                      'border border-gray-300 py-2 px-4 hover:bg-zinc-100 w-full flex flex-row items-center',
+                      teamId ? 'hover:cursor-pointer' : ''
+                    )}
+                  >
+                    <Image
+                      src={'/teams/' + teams[teamId]?.ref + '.png'}
+                      width={25}
+                      height={25}
+                    />
+                    {teamId !== null ? teams[teamId]?.name : ''}
+                  </div>
                 </div>
-              ) : (
-                <div key={index}></div>
               )
             })}
           </div>
+
+          {/* Teams */}
+          <div
+            className={clsx(
+              'min-w-full col-span-2',
+              currentDragOver === 'teamSection' ? 'border-2 border-black' : ''
+            )}
+            draggable={false}
+            onDragOver={(e) => dragOverTeamBox(e)}
+            onDragLeave={(e) => dragLeaveTeamBox(e)}
+          >
+            <div className="rounded-lg w-full grid grid-cols-2 xl:grid-cols-3 gap-3">
+              {teams.map((item, index) => {
+                return !item.picked ? (
+                  <div
+                    className=" text-white py-4 px-4 rounded-lg flex justify-center hover:bg-gray-100 hover:cursor-pointer"
+                    key={item.name}
+                    draggable={true}
+                    onDrag={(e) => dragEntered(e, index)}
+                    onDragEnd={(e) => dragEndTeam(e, index)}
+                  >
+                    <Image
+                      src={'/teams/' + item.ref + '.png'}
+                      width={50}
+                      height={50}
+                    />
+                  </div>
+                ) : (
+                  <div key={index}></div>
+                )
+              })}
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="mt-12 flex flex-row">
-        <button className="ml-4 text-blue-500 border-2 border-blue-500 px-4 py-2 text-white rounded-lg font-medium hover:bg-blue-700">
-          Reset
-        </button>
+        <div className="mt-16 flex flex-row justify-end">
+          <button className="ml-4 border-2 border-black px-8 py-4 font-medium hover:bg-blue-700">
+            Reset
+          </button>
 
-        <button className="ml-4 bg-blue-500 px-4 py-2 text-white rounded-lg font-medium hover:bg-blue-700">
-          Submit
-        </button>
+          <button className="ml-4 bg-black px-8 py-4 text-white font-medium hover:bg-blue-700">
+            Submit
+          </button>
+        </div>
       </div>
     </div>
   )
