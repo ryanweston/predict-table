@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import Image from 'next/image'
 import logo from '../../public/logo2.png'
-import Icon from '@mdi/react'
-import { mdiArrowRight } from '@mdi/js'
+import Link from 'next/link'
 import { useSession } from 'next-auth/react'
+import Head from 'next/head'
 
 export interface ITeam {
   id: number
@@ -14,14 +14,33 @@ export interface ITeam {
   ref: string
 }
 
+const Header = () => {
+  const { data: session } = useSession()
+
+  if (session) {
+    return (
+      <div className="flex flex-row items-center">
+        <h3 className="font-medium text-2xl border-b-4 border-transparent hover:border-black">
+          Register
+        </h3>
+        <Link href="/api/auth/signin">
+          <a className="font-medium text-2xl ml-6 border-b-4 border-transparent hover:border-black">
+            Login
+          </a>
+        </Link>
+      </div>
+    )
+  } else if (!session) {
+    return (
+      <a className="font-medium text-2xl ml-6 border-b-4 border-transparent hover:border-black">
+        {session}
+      </a>
+    )
+  }
+}
+
 const HomePage: NextPage = () => {
-  const { status } = useSession({
-    required: true,
-    onUnauthenticated() {
-      console.log('unauthenticated')
-      // The user is not authenticated, handle it here.
-    },
-  })
+  const { data: session } = useSession()
 
   // Team data and hooks
   const [teams, updateTeams] = useState<ITeam[]>([
@@ -135,11 +154,9 @@ const HomePage: NextPage = () => {
   }
 
   const dragEnd = (e: React.DragEvent, teamId: any, currentTeamRow: number) => {
-    console.log('drag end')
     // Set the table
     const toTable = currentDragOver === 'teamSection' ? false : true
     updateTable(teamId, toTable, currentTeamRow)
-    console.log(tablePos)
     setCurrentDrag(null)
   }
 
@@ -151,7 +168,6 @@ const HomePage: NextPage = () => {
   }
 
   const dragOver = (e: React.DragEvent<HTMLElement>, rowIndex: number) => {
-    console.log('drag over')
     const target = e.target as HTMLElement
     if (currentDragOver !== rowIndex) setCurrentDragOver(rowIndex)
     target.classList.add('border-black')
@@ -190,7 +206,6 @@ const HomePage: NextPage = () => {
     const pickedTeams = [...teams]
     pickedTeams[teamId]!.picked = toTable ? true : false
     updateTeams(pickedTeams)
-    console.log(tablePos)
   }
 
   const dragEndTeam = (e: React.DragEvent, teamIndex: any) => {
@@ -233,14 +248,7 @@ const HomePage: NextPage = () => {
             Compare with friends
           </h3>
         </div>
-        <div className="flex flex-row items-center">
-          <h3 className="font-medium text-2xl border-b-4 border-transparent hover:border-black">
-            Register
-          </h3>
-          <h3 className="font-medium text-2xl ml-6 border-b-4 border-transparent hover:border-black">
-            Login
-          </h3>
-        </div>
+        <Header />
       </div>
 
       <div className="w-full px-20 flex flex-row pt-16 pb-8">
@@ -273,7 +281,6 @@ const HomePage: NextPage = () => {
             {tablePos.map((teamId, rowIndex) => {
               let color = null
               if (zonesMap.has(rowIndex)) color = zonesMap.get(rowIndex)
-              console.log(tablePos[rowIndex], teamId, teams[teamId]?.name)
               return (
                 <div className={clsx('w-full flex flex-row')} key={rowIndex}>
                   <div className="rounded-md py-2 w-1/12 mr-8">
